@@ -200,7 +200,7 @@ export default function ExplorePage() {
         .setLngLat([poi.lng, poi.lat])
         .addTo(map.current!);
 
-      el.addEventListener("click", () => {
+      marker.getElement().addEventListener("click", () => {
         popupRef.current?.remove();
         const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
           .setLngLat([poi.lng, poi.lat])
@@ -375,7 +375,7 @@ export default function ExplorePage() {
 
           {/* Radius slider */}
           <div
-            className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-3 px-4 py-3 rounded-2xl"
+            className="absolute bottom-4 left-4 right-4 z-40 flex items-center gap-3 px-4 py-3 rounded-2xl md:z-10"
             style={{
               background: "rgba(255,255,255,0.95)",
               backdropFilter: "blur(12px)",
@@ -411,7 +411,7 @@ export default function ExplorePage() {
           style={{
             background: "var(--bg)",
             borderColor: "var(--border)",
-            maxHeight: "60vh",
+            maxHeight: "45vh",
             borderTopLeftRadius: "20px",
             borderTopRightRadius: "20px",
           }}
@@ -475,7 +475,7 @@ export default function ExplorePage() {
           </div>
 
           {/* Results list */}
-          <div className="overflow-y-auto px-4 py-3 flex flex-col gap-3" style={{ maxHeight: "calc(60vh - 100px)" }}>
+          <div className="overflow-y-auto px-4 py-3 flex flex-col gap-3" style={{ maxHeight: "calc(45vh - 100px)" }}>
             {searching && (
               <>
                 {Array.from({ length: k }).map((_, i) => (
