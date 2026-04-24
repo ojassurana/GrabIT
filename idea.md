@@ -89,3 +89,28 @@ A social feature for friends to find the best POI to meet at.
 ### Key Principle
 
 The user should not have to manually choose a location. The ranked list provides the information; the scoring algorithm handles the decision.
+
+---
+
+## Feature 4: Voice Agent
+
+A voice agent that sits on top of all three features and acts as the primary interface for hands-free usage.
+
+### How It Works
+
+1. The user speaks to the agent via their microphone.
+2. The agent takes in the speech, understands what the user is asking, and determines which feature (1, 2, or 3) they want to use.
+3. The agent checks whether the current information it has (user location, interests, friends, radius, etc.) is sufficient to execute that feature. If not, it asks the user for the missing information via voice.
+4. Once it has everything it needs, the agent makes tool calls to the relevant feature's backend and returns the results to the user.
+
+### Tool Calls
+
+The voice agent can invoke:
+
+- **Feature 1 (Nearby POI Discovery)** — search for POIs by interest and radius, show results on the map with ETAs.
+- **Feature 2 (Bumblebee Traveller)** — enable/disable passive notifications, adjust radius, change notification preferences.
+- **Feature 3 (Social Meetup)** — initiate a meetup search, specify the interest, find the optimal POI for all friends.
+
+### Key Principle
+
+The voice agent is synced into each feature — it is not a separate experience. It is another way to interact with the same features, making the app fully usable without touching the screen.
