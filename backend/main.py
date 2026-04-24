@@ -328,6 +328,13 @@ async def explore(req: ExploreRequest, user_id: str = Depends(get_current_user))
     # Determine search keywords
     if req.custom_query:
         keywords = [req.custom_query]
+        # Override profile with just the search query for Claude ranking
+        user_profile = {
+            "food_bubbles": [req.custom_query] if req.category == "food" else [],
+            "food_text": "",
+            "activity_bubbles": [req.custom_query] if req.category == "activities" else [],
+            "activity_text": "",
+        }
     else:
         bubbles = req.bubbles_override if req.bubbles_override is not None else (
             food_interests.get("bubbles", []) if req.category == "food" else activity_interests.get("bubbles", [])
