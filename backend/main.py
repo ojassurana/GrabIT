@@ -14,9 +14,20 @@ from dotenv import load_dotenv
 from supabase import create_client
 import asyncio
 
+from contextlib import asynccontextmanager
+
 load_dotenv()
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app):
+    print("[Bumblebee] Starting background loop...")
+    task = asyncio.create_task(bumblebee_loop())
+    yield
+    task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -501,6 +512,7 @@ async def bumblebee_tick():
         active = supabase.table("bumblebee_preferences").select("*").eq("enabled", True).execute()
         if not active.data:
             return
+        print(f"[Bumblebee] Tick: {len(active.data)} active user(s)")
 
         for prefs in active.data:
             try:
@@ -657,11 +669,9 @@ async def process_bumblebee_user(prefs: dict):
 
 async def bumblebee_loop():
     """Background loop that ticks every 15 seconds."""
+    print("[Bumblebee] Loop started")
     while True:
         await bumblebee_tick()
         await asyncio.sleep(15)
 
 
-@app.on_event("startup")
-async def start_bumblebee():
-    asyncio.create_task(bumblebee_loop())
