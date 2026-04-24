@@ -1,9 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
+  const showBack = pathname !== "/home";
 
   const handleLogout = () => {
     localStorage.removeItem("grabit_token");
@@ -19,12 +21,23 @@ export default function Header() {
       className="sticky top-0 z-40 flex items-center justify-between px-6 py-4"
       style={{ background: "rgba(250, 247, 242, 0.85)", backdropFilter: "blur(12px)" }}
     >
-      <div
-        className="text-xl font-bold tracking-tight cursor-pointer"
-        style={{ fontFamily: "var(--font-display)" }}
-        onClick={() => router.push("/home")}
-      >
-        GrabIT
+      <div className="flex items-center gap-2">
+        {showBack && (
+          <button
+            onClick={() => router.push("/home")}
+            className="text-sm cursor-pointer transition-opacity hover:opacity-70"
+            style={{ color: "var(--muted)" }}
+          >
+            ←
+          </button>
+        )}
+        <div
+          className="text-xl font-bold tracking-tight cursor-pointer"
+          style={{ fontFamily: "var(--font-display)" }}
+          onClick={() => router.push("/home")}
+        >
+          GrabIT
+        </div>
       </div>
       <div className="flex items-center gap-4">
         {username && (
