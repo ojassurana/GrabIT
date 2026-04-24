@@ -86,16 +86,13 @@ export default function ExplorePage() {
     return () => clearInterval(interval);
   }, [loaded]);
 
-  // Store initial location for map init (only first non-null value)
-  const initialLat = useRef<number | null>(null);
-  const initialLng = useRef<number | null>(null);
-  if (userLat !== null && initialLat.current === null) initialLat.current = userLat;
-  if (userLng !== null && initialLng.current === null) initialLng.current = userLng;
+  const mapInited = useRef(false);
 
   // Init map ONCE using GrabMapsLib (all-in-one widget)
   useEffect(() => {
-    if (!loaded || !mapContainer.current || map.current) return;
-    if (initialLat.current === null || initialLng.current === null) return;
+    if (!loaded || !mapContainer.current || mapInited.current) return;
+    if (userLat === null || userLng === null) return;
+    mapInited.current = true;
 
     const loadAndInit = async () => {
       // Load GrabMaps script dynamically
@@ -120,7 +117,7 @@ export default function ExplorePage() {
         container: "grab-map",
         apiKey: GRABMAPS_KEY,
         baseUrl: "https://maps.grab.com",
-        viewport: { lat: initialLat.current, lng: initialLng.current, zoom: 13 },
+        viewport: { lat: userLat, lng: userLng, zoom: 13 },
         navigation: true,
         attribution: true,
         buildings: true,
@@ -142,12 +139,8 @@ export default function ExplorePage() {
 
     loadAndInit();
 
-    return () => {
-      map.current?.remove();
-      map.current = null;
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, initialLat.current, initialLng.current]);
+  }, [loaded, userLat, userLng]);
 
   // Update user marker — moves smoothly when location changes
   useEffect(() => {
