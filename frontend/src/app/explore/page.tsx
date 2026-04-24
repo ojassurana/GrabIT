@@ -97,6 +97,12 @@ export default function ExplorePage() {
         center: [userLng, userLat],
         zoom: 13,
         attributionControl: {},
+        transformRequest: (url: string) => {
+          if (url.includes("maps.grab.com")) {
+            return { url, headers: { Authorization: `Bearer ${GRABMAPS_KEY}` } };
+          }
+          return { url };
+        },
       });
 
       m.addControl(new maplibregl.NavigationControl(), "top-left");
