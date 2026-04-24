@@ -5,3 +5,4 @@ httpx==0.28.1
 supabase==2.13.0
 bcrypt==4.3.0
 pyjwt==2.12.1
+anthropic==0.52.0

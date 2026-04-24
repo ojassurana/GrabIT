@@ -9,7 +9,7 @@ const features = [
     id: "explore",
     title: "Explore Nearby",
     description: "Discover the best spots around you — food, activities, stays",
-    badge: "Coming soon",
+    badge: "Live",
     gradient: "linear-gradient(135deg, #00b14f 0%, #009640 60%, #007a33 100%)",
     shadowColor: "rgba(0, 177, 79, 0.25)",
     icon: (
@@ -156,7 +156,7 @@ export default function HomePage() {
                 boxShadow: `0 6px 24px ${feature.shadowColor}, 0 2px 6px rgba(0,0,0,0.06)`,
               }}
               onClick={() => {
-                // All coming soon for now
+                if (feature.id === "explore") router.push("/explore");
               }}
             >
               {/* Subtle pattern overlay */}
@@ -196,8 +196,8 @@ export default function HomePage() {
                 <span
                   className="inline-block self-start px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mt-auto"
                   style={{
-                    background: "rgba(239, 68, 68, 0.9)",
-                    color: "white",
+                    background: feature.badge === "Live" ? "rgba(255, 255, 255, 0.9)" : "rgba(239, 68, 68, 0.9)",
+                    color: feature.badge === "Live" ? "#00b14f" : "white",
                   }}
                 >
                   {feature.badge}
