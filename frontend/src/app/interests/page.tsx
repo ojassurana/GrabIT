@@ -103,7 +103,7 @@ export default function InterestsPage() {
       }),
     });
     setSaving(false);
-    router.push("/");
+    router.push("/home");
   };
 
   const currentBubbles = step === 0 ? foodBubbles : actBubbles;

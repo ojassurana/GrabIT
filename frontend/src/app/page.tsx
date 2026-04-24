@@ -10,7 +10,7 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("grabit_token");
     if (token) {
-      router.push("/interests");
+      router.push("/home");
       return;
     }
     setLoaded(true);
