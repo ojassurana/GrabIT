@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import maplibregl from "maplibre-gl";
 import Header from "@/components/Header";
 
 declare global {
@@ -33,11 +32,8 @@ interface POIResult {
 export default function ExplorePage() {
   const router = useRouter();
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
+  const map = useRef<any>(null);
   const circleLayerAdded = useRef(false);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
-  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   const [loaded, setLoaded] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -145,24 +141,43 @@ export default function ExplorePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, userLat, userLng]);
 
-  // Update user marker — moves smoothly when location changes
+  // Update user marker via GeoJSON source — moves when location changes
   useEffect(() => {
     if (!map.current || !mapReady || userLat === null || userLng === null) return;
 
-    if (userMarkerRef.current) {
-      // Smoothly move the marker
-      userMarkerRef.current.setLngLat([userLng, userLat]);
+    const geojson: GeoJSON.Feature = {
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Point", coordinates: [userLng, userLat] },
+    };
+
+    if (map.current.getSource("user-location")) {
+      (map.current.getSource("user-location") as any).setData(geojson);
     } else {
-      const el = document.createElement("div");
-      el.innerHTML = `<div style="
-        width:18px;height:18px;background:#00b14f;border:3px solid white;border-radius:50%;
-        box-shadow:0 0 0 4px rgba(0,177,79,0.2), 0 2px 8px rgba(0,0,0,0.3);
-        transition: transform 0.3s ease;
-      "></div>`;
-      el.style.transition = "all 1s ease";
-      userMarkerRef.current = new maplibregl.Marker({ element: el })
-        .setLngLat([userLng, userLat])
-        .addTo(map.current);
+      map.current.addSource("user-location", { type: "geojson", data: geojson });
+      // Outer pulse ring
+      map.current.addLayer({
+        id: "user-pulse",
+        type: "circle",
+        source: "user-location",
+        paint: {
+          "circle-radius": 18,
+          "circle-color": "#00b14f",
+          "circle-opacity": 0.15,
+        },
+      });
+      // Inner dot
+      map.current.addLayer({
+        id: "user-dot",
+        type: "circle",
+        source: "user-location",
+        paint: {
+          "circle-radius": 7,
+          "circle-color": "#00b14f",
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
     }
   }, [userLat, userLng, mapReady]);
 
@@ -186,7 +201,7 @@ export default function ExplorePage() {
     };
 
     if (circleLayerAdded.current) {
-      (map.current.getSource("radius-circle") as maplibregl.GeoJSONSource)?.setData(geojson);
+      (map.current.getSource("radius-circle") as any)?.setData(geojson);
     } else {
       map.current.addSource("radius-circle", { type: "geojson", data: geojson });
       map.current.addLayer({
@@ -209,61 +224,114 @@ export default function ExplorePage() {
     updateCircle();
   }, [updateCircle]);
 
-  // Clear markers
-  const clearMarkers = () => {
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-    popupRef.current?.remove();
-  };
+  // POI click handler ref to avoid stale closures
+  const poiClickHandlerRef = useRef<((e: any) => void) | null>(null);
 
-  // Add result markers
+  // Add result markers as GeoJSON layer
   const addMarkers = (pois: POIResult[]) => {
     if (!map.current) return;
-    clearMarkers();
 
-    pois.forEach((poi, i) => {
-      const el = document.createElement("div");
-      el.innerHTML = `<div class="poi-pin" data-poi="${poi.name}" style="
-        width:28px;height:28px;border-radius:50%;
-        background:${selectedCategory === "food" ? "#f97316" : "#00b14f"};
-        border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);
-        display:flex;align-items:center;justify-content:center;
-        color:white;font-size:12px;font-weight:700;cursor:pointer;
-      ">${poi.rank}</div>`;
+    const geojson: GeoJSON.FeatureCollection = {
+      type: "FeatureCollection",
+      features: pois.map((poi) => ({
+        type: "Feature" as const,
+        properties: {
+          name: poi.name,
+          rank: poi.rank,
+          eta_minutes: poi.eta_minutes,
+          distance_km: poi.distance_km,
+        },
+        geometry: { type: "Point" as const, coordinates: [poi.lng, poi.lat] },
+      })),
+    };
 
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([poi.lng, poi.lat])
-        .addTo(map.current!);
+    // Remove old layer/source if exists
+    if (map.current.getLayer("poi-labels")) map.current.removeLayer("poi-labels");
+    if (map.current.getLayer("poi-circles")) map.current.removeLayer("poi-circles");
+    if (map.current.getSource("poi-results")) map.current.removeSource("poi-results");
+    if (poiClickHandlerRef.current) {
+      map.current.off("click", "poi-circles", poiClickHandlerRef.current);
+    }
 
-      el.querySelector(".poi-pin")!.addEventListener("click", (e) => {
-        e.stopPropagation();
-        popupRef.current?.remove();
-        const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
-          .setLngLat([poi.lng, poi.lat])
-          .setHTML(`
-            <div style="font-family:var(--font-body);padding:4px;">
-              <div style="font-weight:600;font-size:13px;">${poi.name}</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:2px;">
-                ${poi.eta_minutes ? `${poi.eta_minutes} min` : ""} · ${poi.distance_km} km
-              </div>
-            </div>
-          `)
-          .addTo(map.current!);
-        popupRef.current = popup;
-        setHighlightedPoi(poi.name);
-        setDrawerOpen(true);
-      });
+    map.current.addSource("poi-results", { type: "geojson", data: geojson });
+    map.current.addLayer({
+      id: "poi-circles",
+      type: "circle",
+      source: "poi-results",
+      paint: {
+        "circle-radius": 14,
+        "circle-color": selectedCategory === "food" ? "#f97316" : "#00b14f",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+    map.current.addLayer({
+      id: "poi-labels",
+      type: "symbol",
+      source: "poi-results",
+      layout: {
+        "text-field": ["get", "rank"],
+        "text-size": 12,
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": "#ffffff",
+      },
+    });
 
-      // Animate pin drop
-      el.style.transform = "translateY(-20px)";
-      el.style.opacity = "0";
-      el.style.transition = "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)";
-      setTimeout(() => {
-        el.style.transform = "translateY(0)";
-        el.style.opacity = "1";
-      }, i * 80);
+    // Click handler for POI circles
+    const handler = (e: any) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const { name, eta_minutes, distance_km } = feature.properties;
+      const [lng, lat] = feature.geometry.coordinates;
 
-      markersRef.current.push(marker);
+      // Show popup
+      const popupDiv = document.createElement("div");
+      popupDiv.innerHTML = `
+        <div style="font-family:var(--font-body);padding:4px;">
+          <div style="font-weight:600;font-size:13px;">${name}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+            ${eta_minutes ? `${eta_minutes} min` : ""} · ${distance_km} km
+          </div>
+        </div>
+      `;
+
+      // Remove old popup
+      const existingPopups = document.querySelectorAll(".maplibregl-popup");
+      existingPopups.forEach((p) => p.remove());
+
+      // Create popup using map's internal popup mechanism
+      const popupContainer = document.createElement("div");
+      popupContainer.className = "maplibregl-popup maplibregl-popup-anchor-bottom";
+      popupContainer.style.cssText = `position:absolute;z-index:999;pointer-events:auto;`;
+      const point = map.current!.project([lng, lat]);
+      popupContainer.style.left = `${point.x}px`;
+      popupContainer.style.top = `${point.y - 20}px`;
+      popupContainer.style.transform = "translate(-50%, -100%)";
+      popupContainer.innerHTML = `
+        <div style="background:white;border-radius:8px;padding:8px 12px;box-shadow:0 2px 12px rgba(0,0,0,0.15);font-family:var(--font-body);">
+          <div style="font-weight:600;font-size:13px;">${name}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+            ${eta_minutes ? `${eta_minutes} min` : ""} · ${distance_km} km
+          </div>
+        </div>
+      `;
+      map.current!.getContainer().appendChild(popupContainer);
+
+      setHighlightedPoi(name);
+      setDrawerOpen(true);
+    };
+
+    map.current.on("click", "poi-circles", handler);
+    poiClickHandlerRef.current = handler;
+
+    // Change cursor on hover
+    map.current.on("mouseenter", "poi-circles", () => {
+      if (map.current) map.current.getCanvas().style.cursor = "pointer";
+    });
+    map.current.on("mouseleave", "poi-circles", () => {
+      if (map.current) map.current.getCanvas().style.cursor = "";
     });
   };
 
