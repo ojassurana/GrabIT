@@ -65,6 +65,39 @@ class ExploreRequest(BaseModel):
     free_text_override: str | None = None
 
 
+class BumblebeePrefsRequest(BaseModel):
+    enabled: bool = False
+    radius_mode: str = "distance"  # "distance" or "eta"
+    radius_km: float = 1.0
+    eta_minutes: float = 10.0
+    transport_mode: str = "walking"  # "walking" or "driving"
+
+
+class PointerUsernameRequest(BaseModel):
+    pointer_username: str
+
+
+# --- Telegram ---
+
+TELEGRAM_BOT_TOKEN = "8620748051:AAHhJeKubJf5_s7ySwKW_vEGuaOJkW3n0Rs"
+TELEGRAM_CHAT_ID = "495589406"
+BUMBLEBEE_SITE_URL = os.getenv("BUMBLEBEE_SITE_URL", "https://grab-git-main-ojasss-projects.vercel.app")
+
+
+async def send_telegram_message(text: str):
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": text,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": True,
+            },
+            timeout=10.0,
+        )
+
+
 # --- Auth helpers ---
 
 def create_token(user_id: str) -> str:
@@ -377,3 +410,254 @@ async def explore(req: ExploreRequest, user_id: str = Depends(get_current_user))
         "radius_km": req.radius_km,
         "transport_mode": req.transport_mode,
     }
+
+
+# --- Bumblebee endpoints ---
+
+@app.post("/bumblebee/preferences")
+def save_bumblebee_prefs(req: BumblebeePrefsRequest, user_id: str = Depends(get_current_user)):
+    # If enabling, clear old notification history for fresh start
+    was_enabled = False
+    existing = supabase.table("bumblebee_preferences").select("enabled").eq("user_id", user_id).execute()
+    if existing.data:
+        was_enabled = existing.data[0].get("enabled", False)
+
+    if req.enabled and not was_enabled:
+        # Clear notification history on re-enable
+        supabase.table("notification_events").delete().eq("user_id", user_id).execute()
+
+    supabase.table("bumblebee_preferences").upsert({
+        "user_id": user_id,
+        "enabled": req.enabled,
+        "radius_mode": req.radius_mode,
+        "radius_km": req.radius_km,
+        "eta_minutes": req.eta_minutes,
+        "transport_mode": req.transport_mode,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }, on_conflict="user_id").execute()
+
+    return {"status": "saved"}
+
+
+@app.get("/bumblebee/preferences")
+def get_bumblebee_prefs(user_id: str = Depends(get_current_user)):
+    result = supabase.table("bumblebee_preferences").select("*").eq("user_id", user_id).execute()
+    if not result.data:
+        return {
+            "enabled": False,
+            "radius_mode": "distance",
+            "radius_km": 1.0,
+            "eta_minutes": 10.0,
+            "transport_mode": "walking",
+        }
+    prefs = result.data[0]
+    return {
+        "enabled": prefs["enabled"],
+        "radius_mode": prefs["radius_mode"],
+        "radius_km": prefs["radius_km"],
+        "eta_minutes": prefs["eta_minutes"],
+        "transport_mode": prefs["transport_mode"],
+    }
+
+
+@app.get("/bumblebee/notifications")
+def get_notifications(user_id: str = Depends(get_current_user)):
+    result = (
+        supabase.table("notification_events")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("notified_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+    return {"notifications": result.data}
+
+
+@app.post("/user/pointer-username")
+def set_pointer_username(req: PointerUsernameRequest, user_id: str = Depends(get_current_user)):
+    supabase.table("users").update({"pointer_username": req.pointer_username}).eq("id", user_id).execute()
+    return {"status": "saved"}
+
+
+@app.get("/user/pointer-username")
+def get_pointer_username(user_id: str = Depends(get_current_user)):
+    result = supabase.table("users").select("pointer_username").eq("id", user_id).execute()
+    if not result.data or not result.data[0].get("pointer_username"):
+        return {"pointer_username": None}
+    return {"pointer_username": result.data[0]["pointer_username"]}
+
+
+# --- Bumblebee background loop ---
+
+async def bumblebee_tick():
+    """One tick of the Bumblebee polling loop. Runs for all active users."""
+    try:
+        active = supabase.table("bumblebee_preferences").select("*").eq("enabled", True).execute()
+        if not active.data:
+            return
+
+        for prefs in active.data:
+            try:
+                await process_bumblebee_user(prefs)
+            except Exception as e:
+                print(f"[Bumblebee] Error for user {prefs['user_id']}: {e}")
+    except Exception as e:
+        print(f"[Bumblebee] Tick error: {e}")
+
+
+async def process_bumblebee_user(prefs: dict):
+    user_id = prefs["user_id"]
+
+    # Get pointer_username
+    user = supabase.table("users").select("pointer_username, username").eq("id", user_id).execute()
+    if not user.data:
+        return
+    pointer_username = user.data[0].get("pointer_username")
+    if not pointer_username:
+        return
+
+    # Fetch location from People Pointer
+    loc = await get_user_location(pointer_username)
+    if not loc:
+        return
+    user_lat, user_lng = loc["lat"], loc["lng"]
+
+    # Get user interests
+    interests = supabase.table("user_interests").select("*").eq("user_id", user_id).execute()
+    food = next((i for i in interests.data if i["category"] == "food"), {"bubbles": [], "free_text": ""})
+    activities = next((i for i in interests.data if i["category"] == "activities"), {"bubbles": [], "free_text": ""})
+
+    # Build keywords for food and activities
+    food_keywords = food.get("bubbles", [])[:]
+    if food.get("free_text"):
+        food_keywords.append(food["free_text"])
+    activity_keywords = activities.get("bubbles", [])[:]
+    if activities.get("free_text"):
+        activity_keywords.append(activities["free_text"])
+
+    # Determine search radius in km
+    if prefs["radius_mode"] == "eta":
+        # Approximate: ETA minutes * 0.7 km (generous for walking/driving in city)
+        search_radius_km = prefs["eta_minutes"] * 0.7
+    else:
+        search_radius_km = prefs["radius_km"]
+
+    # Search GrabMaps: 2 calls (food + activities), combine keywords
+    food_query = " ".join(food_keywords[:5]) if food_keywords else "restaurant"
+    activity_query = " ".join(activity_keywords[:5]) if activity_keywords else "attraction"
+
+    food_results, activity_results = await asyncio.gather(
+        grabmaps_keyword_search(food_query, user_lat, user_lng, limit=10),
+        grabmaps_keyword_search(activity_query, user_lat, user_lng, limit=10),
+    )
+
+    # Merge, deduplicate, filter by radius
+    seen_names = set()
+    all_pois = []
+    for poi in food_results + activity_results:
+        name = poi.get("name", "")
+        if not name or name in seen_names:
+            continue
+        seen_names.add(name)
+        poi_lat = poi.get("location", {}).get("latitude", 0)
+        poi_lng = poi.get("location", {}).get("longitude", 0)
+        dist = haversine_km(user_lat, user_lng, poi_lat, poi_lng)
+        if dist <= search_radius_km:
+            poi["_distance_km"] = dist
+            poi["_lat"] = poi_lat
+            poi["_lng"] = poi_lng
+            all_pois.append(poi)
+
+    if not all_pois:
+        return
+
+    # Check 24h cooldown — filter out already notified POIs
+    one_day_ago = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    recent = (
+        supabase.table("notification_events")
+        .select("poi_id")
+        .eq("user_id", user_id)
+        .gte("notified_at", one_day_ago)
+        .execute()
+    )
+    notified_poi_ids = {r["poi_id"] for r in recent.data}
+    new_pois = [p for p in all_pois if p.get("poi_id", p.get("name", "")) not in notified_poi_ids]
+
+    if not new_pois:
+        return
+
+    # Get ETAs for new POIs
+    transport = prefs.get("transport_mode", "walking")
+    eta_tasks = [grabmaps_get_eta(user_lat, user_lng, p["_lat"], p["_lng"], transport) for p in new_pois]
+    etas = await asyncio.gather(*eta_tasks)
+    for poi, eta in zip(new_pois, etas):
+        poi["_eta"] = eta
+
+    # If ETA mode, filter by actual ETA
+    if prefs["radius_mode"] == "eta":
+        max_eta_s = prefs["eta_minutes"] * 60
+        new_pois = [p for p in new_pois if p.get("_eta", {}).get("duration_s") and p["_eta"]["duration_s"] <= max_eta_s]
+        if not new_pois:
+            return
+
+    # Rank with Claude — pick top 3
+    user_profile = {
+        "food_bubbles": food.get("bubbles", []),
+        "food_text": food.get("free_text", ""),
+        "activity_bubbles": activities.get("bubbles", []),
+        "activity_text": activities.get("free_text", ""),
+    }
+
+    ranked = await asyncio.to_thread(rank_pois_with_claude, new_pois, user_profile, min(3, len(new_pois)))
+    if asyncio.iscoroutine(ranked):
+        ranked = await ranked
+
+    # Match ranked back to POI data and send notifications
+    for r in ranked[:3]:
+        matching = next((p for p in new_pois if p.get("name") == r["name"]), None)
+        if not matching:
+            continue
+
+        poi_id = matching.get("poi_id", matching.get("name", "unknown"))
+        dist_km = matching["_distance_km"]
+        eta_min = round(matching["_eta"]["duration_s"] / 60, 1) if matching.get("_eta", {}).get("duration_s") else None
+        blurb = r.get("blurb", "Great spot nearby")
+
+        # Format Telegram message
+        eta_str = f"{eta_min} min {transport}" if eta_min else "nearby"
+        link = f"{BUMBLEBEE_SITE_URL}/bumblebee?poi={poi_id}"
+        msg = (
+            f"*{matching['name']}*\n"
+            f"📍 {dist_km:.1f} km away · {eta_str}\n"
+            f"_{blurb}_\n\n"
+            f"[View on map]({link})"
+        )
+
+        try:
+            await send_telegram_message(msg)
+        except Exception as e:
+            print(f"[Bumblebee] Telegram send failed: {e}")
+
+        # Record notification
+        supabase.table("notification_events").insert({
+            "user_id": prefs["user_id"],
+            "poi_id": poi_id,
+            "poi_name": matching.get("name", ""),
+            "poi_lat": matching["_lat"],
+            "poi_lng": matching["_lng"],
+            "blurb": blurb,
+            "eta_minutes": eta_min,
+            "distance_km": round(dist_km, 2),
+        }).execute()
+
+
+async def bumblebee_loop():
+    """Background loop that ticks every 15 seconds."""
+    while True:
+        await bumblebee_tick()
+        await asyncio.sleep(15)
+
+
+@app.on_event("startup")
+async def start_bumblebee():
+    asyncio.create_task(bumblebee_loop())
