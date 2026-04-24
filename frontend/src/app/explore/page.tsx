@@ -503,30 +503,14 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {/* Results panel — desktop: right side, mobile: bottom drawer */}
+        {/* Results panel — full height right sidebar */}
         <div
-          className={`
-            fixed bottom-0 left-0 right-0 z-30
-            md:static md:w-[380px] md:min-h-0 md:border-l
-            transition-transform duration-300 ease-out
-            ${drawerOpen ? "translate-y-0" : "translate-y-[calc(100%-48px)]"}
-            md:translate-y-0
-          `}
+          className="w-[380px] border-l flex flex-col"
           style={{
             background: "var(--bg)",
             borderColor: "var(--border)",
-            maxHeight: "45vh",
-            borderTopLeftRadius: "20px",
-            borderTopRightRadius: "20px",
           }}
         >
-          {/* Drawer handle (mobile) */}
-          <div
-            className="md:hidden flex justify-center py-2 cursor-pointer"
-            onClick={() => setDrawerOpen(!drawerOpen)}
-          >
-            <div className="w-10 h-1 rounded-full" style={{ background: "var(--border)" }} />
-          </div>
 
           {/* Panel header */}
           <div className="px-4 py-3 flex items-center justify-between border-b" style={{ borderColor: "var(--border)" }}>
@@ -579,7 +563,7 @@ export default function ExplorePage() {
           </div>
 
           {/* Results list */}
-          <div className="overflow-y-auto px-4 py-3 flex flex-col gap-3" style={{ maxHeight: "calc(45vh - 100px)" }}>
+          <div className="overflow-y-auto px-4 py-3 flex flex-col gap-3 flex-1">
             {searching && (
               <>
                 {Array.from({ length: k }).map((_, i) => (
