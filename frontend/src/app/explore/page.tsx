@@ -136,15 +136,21 @@ export default function ExplorePage() {
     };
   }, [loaded, userLat, userLng]);
 
-  // Update user marker
+  // Update user marker — moves smoothly when location changes
   useEffect(() => {
-    if (!map.current || userLat === null || userLng === null) return;
+    if (!map.current || !mapReady || userLat === null || userLng === null) return;
 
     if (userMarkerRef.current) {
+      // Smoothly move the marker
       userMarkerRef.current.setLngLat([userLng, userLat]);
     } else {
       const el = document.createElement("div");
-      el.innerHTML = `<div style="width:16px;height:16px;background:#00b14f;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`;
+      el.innerHTML = `<div style="
+        width:18px;height:18px;background:#00b14f;border:3px solid white;border-radius:50%;
+        box-shadow:0 0 0 4px rgba(0,177,79,0.2), 0 2px 8px rgba(0,0,0,0.3);
+        transition: transform 0.3s ease;
+      "></div>`;
+      el.style.transition = "all 1s ease";
       userMarkerRef.current = new maplibregl.Marker({ element: el })
         .setLngLat([userLng, userLat])
         .addTo(map.current);
