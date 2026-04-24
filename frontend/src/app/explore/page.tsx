@@ -447,7 +447,7 @@ export default function ExplorePage() {
                 boxShadow: "0 4px 20px rgba(0, 177, 79, 0.4)",
               }}
             >
-              Discover Places
+              🧭 Discover places based on your profile
             </button>
           )}
 
