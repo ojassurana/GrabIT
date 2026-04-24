@@ -145,11 +145,11 @@ export default function HomePage() {
         </div>
 
         {/* Feature cards */}
-        <div className="flex flex-col gap-4 stagger">
+        <div className="flex flex-row gap-4 stagger overflow-x-auto">
           {features.map((feature, i) => (
             <button
               key={feature.id}
-              className="animate-bubble-in group relative w-full rounded-3xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+              className="animate-bubble-in group relative flex-1 min-w-0 rounded-3xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
               style={{
                 opacity: 0,
                 background: feature.gradient,
