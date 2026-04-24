@@ -121,31 +121,17 @@ export default function ExplorePage() {
         labels: true,
       });
 
-      // Try onReady first, then fallback to polling for the map
-      let resolved = false;
-      lib.onReady(() => {
-        if (resolved) return;
-        resolved = true;
-        const mlMap = lib.getMap();
-        map.current = mlMap;
-        setMapReady(true);
-      });
-
-      // Fallback: poll for the map instance if onReady doesn't fire
+      // Poll for the map instance via grabMapsInstance global
       const pollMap = () => {
-        if (resolved) return;
-        try {
-          const mlMap = lib.getMap();
-          if (mlMap) {
-            resolved = true;
-            map.current = mlMap;
-            setMapReady(true);
-            return;
-          }
-        } catch {}
-        setTimeout(pollMap, 500);
+        const instance = (window as any).grabMapsInstance;
+        if (instance?.mapInstance) {
+          map.current = instance.mapInstance;
+          setMapReady(true);
+          return;
+        }
+        setTimeout(pollMap, 300);
       };
-      setTimeout(pollMap, 1000);
+      setTimeout(pollMap, 500);
     };
 
     loadAndInit();
