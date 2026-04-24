@@ -188,7 +188,7 @@ export default function ExplorePage() {
 
     pois.forEach((poi, i) => {
       const el = document.createElement("div");
-      el.innerHTML = `<div style="
+      el.innerHTML = `<div class="poi-pin" data-poi="${poi.name}" style="
         width:28px;height:28px;border-radius:50%;
         background:${selectedCategory === "food" ? "#f97316" : "#00b14f"};
         border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);
@@ -200,7 +200,8 @@ export default function ExplorePage() {
         .setLngLat([poi.lng, poi.lat])
         .addTo(map.current!);
 
-      marker.getElement().addEventListener("click", () => {
+      el.querySelector(".poi-pin")!.addEventListener("click", (e) => {
+        e.stopPropagation();
         popupRef.current?.remove();
         const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
           .setLngLat([poi.lng, poi.lat])
