@@ -32,7 +32,7 @@ const features = [
     id: "bumblebee",
     title: "Bumblebee",
     description: "Roam freely — get notified when great places are nearby",
-    badge: "Coming soon",
+    badge: "Live",
     gradient: "linear-gradient(135deg, #f97316 0%, #ea580c 60%, #c2410c 100%)",
     shadowColor: "rgba(249, 115, 22, 0.25)",
     icon: (
@@ -157,6 +157,7 @@ export default function HomePage() {
               }}
               onClick={() => {
                 if (feature.id === "explore") router.push("/explore");
+                if (feature.id === "bumblebee") router.push("/bumblebee");
               }}
             >
               {/* Subtle pattern overlay */}

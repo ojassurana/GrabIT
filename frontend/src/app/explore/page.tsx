@@ -316,7 +316,7 @@ export default function ExplorePage() {
       <div className="flex flex-1 relative min-h-0">
         {/* Map area */}
         <div className="flex-1 relative min-h-0">
-          <div ref={mapContainer} id="grab-map" className="absolute inset-0" />
+          <div ref={mapContainer} id="grab-map" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0 }} />
 
           {/* Floating search bar */}
           <div className="absolute top-4 left-4 right-4 z-10 flex gap-2" style={{ maxWidth: "400px" }}>
