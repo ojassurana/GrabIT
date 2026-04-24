@@ -46,6 +46,17 @@ function SignupForm() {
       localStorage.setItem("grabit_user_id", data.user_id);
       localStorage.setItem("grabit_username", data.username);
 
+      if (isLogin) {
+        // Check if user already has interests saved
+        const intRes = await fetch(`${API}/interests`, {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        const intData = await intRes.json();
+        if (intData.interests && intData.interests.length > 0) {
+          router.push("/home");
+          return;
+        }
+      }
       router.push("/interests");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong";
