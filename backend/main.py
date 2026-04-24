@@ -197,26 +197,25 @@ async def rank_pois_with_claude(pois_with_eta: list[dict], user_profile: dict, k
     profile_desc = f"Food interests: {', '.join(user_profile.get('food_bubbles', []))}. {user_profile.get('food_text', '')}\n"
     profile_desc += f"Activity interests: {', '.join(user_profile.get('activity_bubbles', []))}. {user_profile.get('activity_text', '')}"
 
-    prompt = f"""You are a travel recommendation AI for Southeast Asia.
+    prompt = f"""You are a travel recommendation AI for Southeast Asia. A traveller has the following profile:
 
-A traveller has the following profile:
 {profile_desc}
 
-Here are {len(pois_summary)} places found nearby. Rank them by a composite score considering:
-1. How well the place matches the traveller's interests (most important)
-2. Distance/ETA (closer is better, but less important than interest match)
-3. Quality of the place based on available metadata
+Here are {len(pois_summary)} places found nearby. Rank them by a composite score:
+1. Interest alignment (most important) — how specifically the place matches what they listed
+2. Distance/ETA — closer is better but secondary
+3. Place quality — based on metadata, category, and guide info
 
 Return EXACTLY the top {k} places as a JSON array. Each item must have:
-- "name": the exact place name from the input
+- "name": the exact place name from the input (must match exactly)
 - "rank": integer 1 to {k}
-- "blurb": a punchy 5-10 word reason why this place fits the traveller (be specific about WHY — reference their actual interests)
-- "score": a number 0-100 representing the composite fit
+- "blurb": 10-20 words explaining SPECIFICALLY why this place is a great fit for THIS traveller. Reference their actual interests by name. For example, if they like "Indian food", say "Serves authentic South Indian dosas and thali — matches your Indian food preference." Do NOT write generic descriptions like "local dining spot" or "convenient location." Every blurb must connect the place to the traveller's stated interests.
+- "score": 0-100 composite fit score
 
 Places to rank:
 {json.dumps(pois_summary, indent=2)}
 
-Respond with ONLY a valid JSON array, no markdown, no explanation."""
+Respond with ONLY a valid JSON array, no markdown, no code fences, no explanation."""
 
     response = claude.messages.create(
         model="claude-sonnet-4-20250514",

@@ -438,7 +438,7 @@ export default function ExplorePage() {
           </div>
 
           {/* Discover button */}
-          {!showCategoryPicker && results.length === 0 && !searching && (
+          {!showCategoryPicker && !searching && (
             <button
               onClick={() => setShowCategoryPicker(true)}
               className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10 h-12 px-8 rounded-2xl text-white font-semibold text-sm cursor-pointer transition-all hover:scale-105 active:scale-95"
