@@ -128,8 +128,10 @@ export default function ExplorePage() {
       const pollMap = () => {
         const instance = (window as any).grabMapsInstance;
         const realMap = instance?.mapInstance?.getMap?.();
+        console.log("[GrabIT] polling for map...", !!realMap, realMap?.getContainer ? "has getContainer" : "no getContainer");
         if (realMap?.getContainer) {
           map.current = realMap;
+          console.log("[GrabIT] map.current set, calling setMapReady(true)");
           setMapReady(true);
           return;
         }
