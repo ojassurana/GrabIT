@@ -145,16 +145,17 @@ export default function HomePage() {
         </div>
 
         {/* Feature cards */}
-        <div className="flex flex-row gap-4 stagger overflow-x-auto">
+        <div className="flex flex-row gap-4 stagger overflow-x-auto pb-2 -mx-6 px-6 snap-x snap-mandatory" style={{ scrollbarWidth: "none" }}>
           {features.map((feature, i) => (
             <button
               key={feature.id}
-              className="animate-bubble-in group relative flex-1 min-w-0 rounded-3xl p-6 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden"
+              className="animate-bubble-in group relative flex-shrink-0 rounded-3xl p-5 text-left transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer overflow-hidden snap-start"
               style={{
                 opacity: 0,
                 background: feature.gradient,
                 boxShadow: `0 8px 32px ${feature.shadowColor}, 0 2px 8px rgba(0,0,0,0.08)`,
-                minHeight: "140px",
+                width: "260px",
+                minHeight: "180px",
               }}
               onClick={() => {
                 // All coming soon for now
@@ -175,41 +176,40 @@ export default function HomePage() {
                 style={{ background: "white" }}
               />
 
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2
-                    className="text-xl text-white font-semibold mb-1.5 tracking-tight"
-                    style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}
-                  >
-                    {feature.title}
-                  </h2>
-                  <p className="text-sm text-white/70 leading-relaxed">
-                    {feature.description}
-                  </p>
-
-                  {/* Coming soon badge */}
-                  <span
-                    className="inline-block mt-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                    style={{
-                      background: "rgba(239, 68, 68, 0.9)",
-                      color: "white",
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    {feature.badge}
-                  </span>
-                </div>
-
+              <div className="relative flex flex-col gap-3">
                 {/* Icon */}
                 <div
-                  className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
                   style={{
-                    background: "rgba(255, 255, 255, 0.12)",
-                    backdropFilter: "blur(8px)",
+                    background: "rgba(255, 255, 255, 0.15)",
                   }}
                 >
                   {feature.icon}
                 </div>
+
+                <div>
+                  <h2
+                    className="text-lg text-white font-semibold mb-1 tracking-tight"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {feature.title}
+                  </h2>
+                  <p className="text-xs text-white/65 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+
+                {/* Coming soon badge */}
+                <span
+                  className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    background: "rgba(239, 68, 68, 0.9)",
+                    color: "white",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  {feature.badge}
+                </span>
               </div>
             </button>
           ))}
