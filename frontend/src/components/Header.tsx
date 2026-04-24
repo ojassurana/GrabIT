@@ -41,9 +41,19 @@ export default function Header() {
       </div>
       <div className="flex items-center gap-4">
         {username && (
-          <span className="text-sm font-medium" style={{ color: "var(--muted)" }}>
+          <button
+            onClick={() => router.push("/interests")}
+            className="text-sm font-medium cursor-pointer transition-all hover:opacity-70 flex items-center gap-1.5"
+            style={{ color: "var(--muted)" }}
+          >
+            <span
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              style={{ background: "linear-gradient(135deg, var(--accent) 0%, #009640 100%)" }}
+            >
+              {username.charAt(0).toUpperCase()}
+            </span>
             {username}
-          </span>
+          </button>
         )}
         <button
           onClick={handleLogout}
