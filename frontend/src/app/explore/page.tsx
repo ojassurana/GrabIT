@@ -124,11 +124,12 @@ export default function ExplorePage() {
         labels: true,
       });
 
-      // Poll for the map instance via grabMapsInstance global
+      // Poll for the real MapLibre map via grabMapsInstance.mapInstance.getMap()
       const pollMap = () => {
         const instance = (window as any).grabMapsInstance;
-        if (instance?.mapInstance) {
-          map.current = instance.mapInstance;
+        const realMap = instance?.mapInstance?.getMap?.();
+        if (realMap?.getContainer) {
+          map.current = realMap;
           setMapReady(true);
           return;
         }
