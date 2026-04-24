@@ -32,10 +32,6 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
         />
-        <script
-          type="module"
-          src="https://maps.grab.com/developer/assets/js/grabmaps.es.js"
-        />
       </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

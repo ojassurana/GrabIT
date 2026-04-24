@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 declare global {
   interface Window {
     GrabMaps: any;
+    GrabMapsLib: any;
   }
 }
 
@@ -85,46 +86,49 @@ export default function ExplorePage() {
     return () => clearInterval(interval);
   }, [loaded]);
 
-  // Init map using GrabMaps library
+  // Init map using GrabMapsLib (all-in-one widget)
   useEffect(() => {
     if (!loaded || !mapContainer.current || map.current) return;
     if (userLat === null || userLng === null) return;
 
-    const waitForGrabMaps = () => {
-      if (window.GrabMaps) {
-        const client = new window.GrabMaps.GrabMapsBuilder()
-          .setBaseUrl("https://maps.grab.com")
-          .setApiKey(GRABMAPS_KEY)
-          .build();
-
-        const grabMap = new window.GrabMaps.MapBuilder(client)
-          .setContainer(mapContainer.current!.id || "grab-map")
-          .setCenter([userLng, userLat])
-          .setZoom(12)
-          .enableNavigation()
-          .enableLabels()
-          .enableBuildings()
-          .enableAttribution()
-          .build();
-
-        // Get the underlying MapLibre map instance
-        const mlMap = grabMap.getMap ? grabMap.getMap() : grabMap;
-        map.current = mlMap;
-
-        mlMap.on("load", () => {
-          setMapReady(true);
-        });
-
-        // If the map is already loaded
-        if (mlMap.loaded && mlMap.loaded()) {
-          setMapReady(true);
-        }
-      } else {
-        setTimeout(waitForGrabMaps, 200);
+    const loadAndInit = async () => {
+      // Load GrabMaps script dynamically
+      if (!document.querySelector('script[src*="grabmaps"]')) {
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = "https://maps.grab.com/developer/assets/js/grabmaps.es.js";
+        document.head.appendChild(script);
       }
+
+      // Wait for GrabMapsLib to be available
+      const waitForLib = (resolve: () => void) => {
+        if (window.GrabMapsLib) {
+          resolve();
+        } else {
+          setTimeout(() => waitForLib(resolve), 200);
+        }
+      };
+      await new Promise<void>((resolve) => waitForLib(resolve));
+
+      const lib = new window.GrabMapsLib({
+        container: "grab-map",
+        apiKey: GRABMAPS_KEY,
+        baseUrl: "https://maps.grab.com",
+        viewport: { lat: userLat, lng: userLng, zoom: 13 },
+        navigation: true,
+        attribution: true,
+        buildings: true,
+        labels: true,
+      });
+
+      lib.onReady(() => {
+        const mlMap = lib.getMap();
+        map.current = mlMap;
+        setMapReady(true);
+      });
     };
 
-    waitForGrabMaps();
+    loadAndInit();
 
     return () => {
       map.current?.remove();
