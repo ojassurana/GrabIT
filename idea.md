@@ -4,31 +4,67 @@ A mobile-friendly travel assistant website for people travelling around Southeas
 
 ---
 
-## Feature 1: Nearby POI Discovery
-
-The user describes the kind of places they are looking for. Their browser location is available to the website.
+## Feature 1: Nearby POI Discovery (Explore Nearby)
 
 ### Interest Selection (Signup Page)
 
-The user specifies their interests during signup. The signup page should have a visually appealing, polished UX for selecting interests — not a boring form. Interests fall into three categories:
+The user specifies their interests during signup. The signup page should have a visually appealing, polished UX for selecting interests — not a boring form. Two categories:
 
-1. **Food** — The user describes the kind of food they like. Keywords can be specific cuisines (e.g. "Vietnamese dish", "masala dosa"), or broader categories (e.g. "fast food"). These keywords are passed to the GrabMaps keyword search API.
-2. **Activities / Experiences** — Tourist attractions and experiences (e.g. Cu Chi Tunnels in Ho Chi Minh, Petronas Towers, a day at Universal Studios / theme parks).
-3. **Accommodations** — Places to stay.
+1. **Food** — Specific cuisines (e.g. "Vietnamese dish", "masala dosa"), or broader categories (e.g. "fast food"). Keywords passed to GrabMaps keyword search API.
+2. **Activities / Experiences** — Tourist attractions and experiences (e.g. Cu Chi Tunnels, Petronas Towers, theme parks).
 
-### Search Radius
+Each category has selectable bubbles, custom bubble creation (+ button), and a free text box.
 
-The user defines a search radius around their current location (e.g. 3 km, 5 km). The GrabMaps nearby/keyword search API is used to find the best matching POIs within that radius.
+### Entry Point
 
-### Map View
+User taps "Explore Nearby" on the home page. **No search happens automatically.** The page opens with:
 
-- The user's location is shown as a point on a GrabMaps map.
-- A circle is drawn around the user based on their defined search radius.
-- Matching POIs appear as points inside the circle.
-- The user can hover over a POI to see:
-  - POI information (name, address, category, etc.)
-  - Why that POI is a good match for what they are looking for.
-  - ETA from the user's location to that POI (calculated via the GrabMaps directions API).
+- A GrabMaps map centered on the user's location.
+- User location is pulled from the **People Pointer API** (`/api/pointers/:username`), polled every ~1 second in the background to stay fresh.
+- A **radius slider** below the map (0–20 km).
+- A **circle overlay** on the map that expands/contracts with the slider (subtle green fill, ~5% opacity, dimmed area outside).
+- A **floating search bar** on top of the map (Google Maps style).
+
+### Search Flow
+
+1. User presses the search/discover button → picks **Food** or **Activities** tab.
+2. App searches using **all saved bubbles + free text** for that category via GrabMaps keyword search API within the current radius.
+3. Small **edit button** lets the user temporarily tweak interests (bubbles + free text) for this search only — does not change saved profile.
+4. GrabMaps returns ~15–20 POIs → **parallel** API calls for ETA (GrabMaps directions) + **one Claude API call** to re-rank using composite score (interest alignment + distance + POI metadata quality) and generate 5–10 word "why it fits" blurbs.
+5. Results capped at **K** (default 5, changeable via dropdown: 3, 5, 10).
+6. All API calls (directions + Claude) are **parallelized**.
+
+### Custom Search
+
+User can type a query in the floating search bar (e.g. "hojicha tea") → **replaces** profile-based results with new search results within the radius. Clear search bar to return to profile-based results.
+
+### Transport Mode
+
+Toggle at the top of results panel: **Driving** (default) or **Walking**. Only one ETA call per POI based on selected mode.
+
+### Results Panel
+
+- **Desktop**: Right-side panel with ranked list.
+- **Mobile**: Collapsible bottom drawer.
+- Each card shows: place name, "why it fits" blurb (AI-generated), distance, ETA.
+- Dropdown to change K (3, 5, 10).
+
+### Map Interaction
+
+- Pins appear inside the circle for all K results (drop animation when ready).
+- **Tap a pin** → small popup on map (name + ETA) + panel auto-scrolls to that POI's card.
+- **Tap a card** → map centers/highlights that pin.
+- Pins strictly inside the radius circle only (client-side filtering).
+
+### Loading State
+
+Map stays visible. Results panel shows **skeleton cards** (pulsing placeholders). When all data is ready, pins drop onto the map simultaneously and skeleton cards fill in.
+
+### AI Agent (Claude API)
+
+- One Claude call with structured outputs receives all ~15–20 POIs + user profile.
+- Re-ranks by composite score and returns top K with "why it fits" blurbs.
+- Uses POI metadata from GrabMaps (name, category, address, business_type, guide_info) to generate relevant, specific blurbs.
 
 ---
 
