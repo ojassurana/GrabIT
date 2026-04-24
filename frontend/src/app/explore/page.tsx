@@ -290,12 +290,12 @@ export default function ExplorePage() {
   if (!loaded) return null;
 
   return (
-    <div className="noise min-h-screen flex flex-col relative overflow-hidden">
+    <div className="noise h-screen flex flex-col relative overflow-hidden">
       <Header />
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 relative min-h-0">
         {/* Map area */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <div ref={mapContainer} className="absolute inset-0" />
 
           {/* Floating search bar */}
