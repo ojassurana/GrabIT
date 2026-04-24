@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Header from "@/components/Header";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://grabit-backend-33a815d5fa2c.herokuapp.com";
 
@@ -129,6 +130,7 @@ export default function InterestsPage() {
 
   return (
     <div className="noise min-h-screen flex flex-col relative overflow-hidden">
+      <Header />
       {/* Background */}
       <div
         className="absolute top-[-10%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-15 blur-3xl"

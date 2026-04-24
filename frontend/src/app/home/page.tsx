@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Header from "@/components/Header";
 
 const features = [
   {
@@ -109,6 +110,7 @@ export default function HomePage() {
 
   return (
     <div className="noise min-h-screen flex flex-col relative overflow-hidden">
+      <Header />
       {/* Background accents */}
       <div
         className="absolute top-[-15%] right-[-20%] w-[450px] h-[450px] rounded-full opacity-12 blur-3xl"
