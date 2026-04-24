@@ -508,13 +508,11 @@ async def bumblebee_tick():
 async def process_bumblebee_user(prefs: dict):
     user_id = prefs["user_id"]
 
-    # Get pointer_username
-    user = supabase.table("users").select("pointer_username, username").eq("id", user_id).execute()
+    # Get username (used as People Pointer username)
+    user = supabase.table("users").select("username").eq("id", user_id).execute()
     if not user.data:
         return
-    pointer_username = user.data[0].get("pointer_username")
-    if not pointer_username:
-        return
+    pointer_username = user.data[0]["username"]
 
     # Fetch location from People Pointer
     loc = await get_user_location(pointer_username)

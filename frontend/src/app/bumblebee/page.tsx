@@ -60,8 +60,7 @@ function BumblebeeContent() {
   const [etaMinutes, setEtaMinutes] = useState(10);
   const [transportMode, setTransportMode] = useState<"walking" | "driving">("walking");
   const [saving, setSaving] = useState(false);
-  const [pointerUsername, setPointerUsername] = useState("");
-  const [pointerSet, setPointerSet] = useState(false);
+  const [username, setUsername] = useState("");
 
   // Notifications
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -77,6 +76,7 @@ function BumblebeeContent() {
       return;
     }
     setToken(t);
+    setUsername(localStorage.getItem("grabit_username") || "");
     setLoaded(true);
   }, [router]);
 
@@ -91,24 +91,14 @@ function BumblebeeContent() {
 
     const loadPrefs = async () => {
       try {
-        const [prefsRes, pointerRes] = await Promise.all([
-          fetch(`${API}/bumblebee/preferences`, { headers: authHeaders() }),
-          fetch(`${API}/user/pointer-username`, { headers: authHeaders() }),
-        ]);
-        if (prefsRes.ok) {
-          const data = await prefsRes.json();
+        const res = await fetch(`${API}/bumblebee/preferences`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json();
           setEnabled(data.enabled);
           setRadiusMode(data.radius_mode);
           setRadiusKm(data.radius_km);
           setEtaMinutes(data.eta_minutes);
           setTransportMode(data.transport_mode);
-        }
-        if (pointerRes.ok) {
-          const data = await pointerRes.json();
-          if (data.pointer_username) {
-            setPointerUsername(data.pointer_username);
-            setPointerSet(true);
-          }
         }
       } catch {}
     };
@@ -117,12 +107,12 @@ function BumblebeeContent() {
 
   // Poll user location + notifications every 15s
   useEffect(() => {
-    if (!loaded || !pointerSet) return;
+    if (!loaded || !username) return;
 
     const fetchData = async () => {
       try {
         const [locRes, notifRes] = await Promise.all([
-          fetch(`${API}/location/${pointerUsername}`),
+          fetch(`${API}/location/${username}`),
           fetch(`${API}/bumblebee/notifications`, { headers: authHeaders() }),
         ]);
         if (locRes.ok) {
@@ -140,7 +130,7 @@ function BumblebeeContent() {
     fetchData();
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [loaded, pointerSet, pointerUsername, authHeaders]);
+  }, [loaded, username, authHeaders]);
 
   // Init map
   useEffect(() => {
@@ -299,19 +289,6 @@ function BumblebeeContent() {
     setSaving(false);
   };
 
-  // Save pointer username
-  const savePointerUsername = async () => {
-    if (!pointerUsername.trim()) return;
-    try {
-      await fetch(`${API}/user/pointer-username`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ pointer_username: pointerUsername.trim() }),
-      });
-      setPointerSet(true);
-    } catch {}
-  };
-
   // Toggle enabled
   const toggleEnabled = async () => {
     const newVal = !enabled;
@@ -361,41 +338,7 @@ function BumblebeeContent() {
           </div>
         </div>
 
-        {/* Pointer username setup */}
-        {!pointerSet && (
-          <div
-            className="rounded-2xl p-4 mb-4 animate-fade-in"
-            style={{ background: "var(--warm-light)", border: "1.5px solid #fed7aa" }}
-          >
-            <p className="text-sm font-semibold mb-2" style={{ color: "#c2410c" }}>
-              Set your simulator username
-            </p>
-            <p className="text-xs mb-3" style={{ color: "var(--muted)" }}>
-              Enter your People Pointer username so Bumblebee can track your location.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={pointerUsername}
-                onChange={(e) => setPointerUsername(e.target.value)}
-                placeholder="e.g. ojas"
-                className="flex-1 px-3 py-2 rounded-xl text-sm"
-                style={{ background: "var(--card)", border: "1.5px solid var(--border)" }}
-              />
-              <button
-                onClick={savePointerUsername}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer transition-all hover:scale-105 active:scale-95"
-                style={{ background: "#f97316" }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        )}
-
-        {pointerSet && (
-          <>
-            {/* Settings panel */}
+        {/* Settings panel */}
             <div
               className="rounded-2xl p-4 mb-4 animate-slide-up"
               style={{ background: "var(--card)", border: "1.5px solid var(--border)" }}
@@ -583,8 +526,6 @@ function BumblebeeContent() {
                 </div>
               )}
             </div>
-          </>
-        )}
       </div>
     </div>
   );
