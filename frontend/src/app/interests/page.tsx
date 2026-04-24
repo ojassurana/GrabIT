@@ -133,10 +133,7 @@ export default function InterestsPage() {
       <div
         className="absolute top-[-10%] right-[-20%] w-[500px] h-[500px] rounded-full opacity-15 blur-3xl"
         style={{
-          background: step === 0
-            ? "radial-gradient(circle, var(--warm) 0%, transparent 70%)"
-            : "radial-gradient(circle, var(--accent) 0%, transparent 70%)",
-          transition: "background 0.6s ease",
+          background: "radial-gradient(circle, var(--accent) 0%, transparent 70%)",
         }}
       />
 
@@ -148,9 +145,7 @@ export default function InterestsPage() {
               key={i}
               className="h-1.5 flex-1 rounded-full transition-all duration-500"
               style={{
-                background: i <= step
-                  ? step === 0 ? "var(--warm)" : "var(--accent)"
-                  : "var(--border)",
+                background: i <= step ? "var(--accent)" : "var(--border)",
               }}
             />
           ))}
@@ -181,16 +176,10 @@ export default function InterestsPage() {
                 className="animate-bubble-in flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
                 style={{
                   opacity: 0,
-                  background: isSelected
-                    ? step === 0 ? "var(--warm)" : "var(--accent)"
-                    : "var(--card)",
+                  background: isSelected ? "var(--accent)" : "var(--card)",
                   color: isSelected ? "#fff" : "var(--fg)",
                   border: isSelected ? "none" : "1.5px solid var(--border)",
-                  boxShadow: isSelected
-                    ? step === 0
-                      ? "0 2px 12px rgba(249, 115, 22, 0.3)"
-                      : "0 2px 12px rgba(0, 177, 79, 0.3)"
-                    : "none",
+                  boxShadow: isSelected ? "0 2px 12px rgba(0, 177, 79, 0.3)" : "none",
                 }}
               >
                 <span>{emoji}</span>
@@ -303,12 +292,8 @@ export default function InterestsPage() {
             disabled={saving}
             className="flex-1 h-14 rounded-2xl text-white font-semibold text-base transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
             style={{
-              background: step === 0
-                ? "linear-gradient(135deg, var(--warm) 0%, #ea580c 100%)"
-                : "linear-gradient(135deg, var(--accent) 0%, #009640 100%)",
-              boxShadow: step === 0
-                ? "0 4px 20px rgba(249, 115, 22, 0.3)"
-                : "0 4px 20px rgba(0, 177, 79, 0.3)",
+              background: "linear-gradient(135deg, var(--accent) 0%, #009640 100%)",
+              boxShadow: "0 4px 20px rgba(0, 177, 79, 0.3)",
             }}
           >
             {saving ? "Saving..." : step === 0 ? "Next → Activities" : "Start Exploring"}
