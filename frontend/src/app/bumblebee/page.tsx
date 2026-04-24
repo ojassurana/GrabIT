@@ -91,16 +91,17 @@ function BumblebeeContent() {
   useEffect(() => {
     if (!loaded || !username) return;
     const fetchData = async () => {
+      // Fetch location and notifications independently so one failing doesn't block the other
       try {
-        const [locRes, notifRes] = await Promise.all([
-          fetch(`${API}/location/${username}`),
-          fetch(`${API}/bumblebee/notifications`, { headers: authHeaders() }),
-        ]);
+        const locRes = await fetch(`${API}/location/${username}`);
         if (locRes.ok) {
           const data = await locRes.json();
           setUserLat(data.lat);
           setUserLng(data.lng);
         }
+      } catch {}
+      try {
+        const notifRes = await fetch(`${API}/bumblebee/notifications`, { headers: authHeaders() });
         if (notifRes.ok) {
           const data = await notifRes.json();
           setNotifications(data.notifications || []);
