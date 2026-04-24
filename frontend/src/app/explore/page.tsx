@@ -3,8 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import Header from "@/components/Header";
+
+declare global {
+  interface Window {
+    GrabMaps: any;
+  }
+}
 
 const API = process.env.NEXT_PUBLIC_API_URL || "https://grabit-backend-33a815d5fa2c.herokuapp.com";
 const GRABMAPS_KEY = "bm_1776994836_w1Uc7JWZ8lLBhUlnMVjphRoO8f76Hp6E";
@@ -80,41 +85,46 @@ export default function ExplorePage() {
     return () => clearInterval(interval);
   }, [loaded]);
 
-  // Init map
+  // Init map using GrabMaps library
   useEffect(() => {
     if (!loaded || !mapContainer.current || map.current) return;
     if (userLat === null || userLng === null) return;
 
-    const initMap = async () => {
-      const styleRes = await fetch("https://maps.grab.com/api/style.json?theme=basic", {
-        headers: { Authorization: `Bearer ${GRABMAPS_KEY}` },
-      });
-      const style = await styleRes.json();
+    const waitForGrabMaps = () => {
+      if (window.GrabMaps) {
+        const client = new window.GrabMaps.GrabMapsBuilder()
+          .setBaseUrl("https://maps.grab.com")
+          .setApiKey(GRABMAPS_KEY)
+          .build();
 
-      const m = new maplibregl.Map({
-        container: mapContainer.current!,
-        style,
-        center: [userLng, userLat],
-        zoom: 13,
-        attributionControl: {},
-        transformRequest: (url: string) => {
-          if (url.includes("maps.grab.com")) {
-            return { url, headers: { Authorization: `Bearer ${GRABMAPS_KEY}` } };
-          }
-          return { url };
-        },
-      });
+        const grabMap = new window.GrabMaps.MapBuilder(client)
+          .setContainer(mapContainer.current!.id || "grab-map")
+          .setCenter([userLng, userLat])
+          .setZoom(12)
+          .enableNavigation()
+          .enableLabels()
+          .enableBuildings()
+          .enableAttribution()
+          .build();
 
-      m.addControl(new maplibregl.NavigationControl(), "top-left");
+        // Get the underlying MapLibre map instance
+        const mlMap = grabMap.getMap ? grabMap.getMap() : grabMap;
+        map.current = mlMap;
 
-      m.on("load", () => {
-        setMapReady(true);
-      });
+        mlMap.on("load", () => {
+          setMapReady(true);
+        });
 
-      map.current = m;
+        // If the map is already loaded
+        if (mlMap.loaded && mlMap.loaded()) {
+          setMapReady(true);
+        }
+      } else {
+        setTimeout(waitForGrabMaps, 200);
+      }
     };
 
-    initMap();
+    waitForGrabMaps();
 
     return () => {
       map.current?.remove();
@@ -302,7 +312,7 @@ export default function ExplorePage() {
       <div className="flex flex-1 relative min-h-0">
         {/* Map area */}
         <div className="flex-1 relative min-h-0">
-          <div ref={mapContainer} className="absolute inset-0" />
+          <div ref={mapContainer} id="grab-map" className="absolute inset-0" />
 
           {/* Floating search bar */}
           <div className="absolute top-4 left-4 right-4 z-10 flex gap-2" style={{ maxWidth: "400px" }}>
