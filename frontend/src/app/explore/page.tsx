@@ -408,7 +408,7 @@ export default function ExplorePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && selectedCategory) handleSearch(selectedCategory);
+                if (e.key === "Enter" && searchQuery.trim()) handleSearch(selectedCategory || "food");
               }}
               placeholder="Search for something specific..."
               className="flex-1 h-11 px-4 rounded-xl text-sm outline-none"
@@ -419,6 +419,18 @@ export default function ExplorePage() {
                 boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
               }}
             />
+            {searchQuery && (
+              <button
+                onClick={() => handleSearch(selectedCategory || "food")}
+                className="h-11 px-4 rounded-xl text-xs font-semibold cursor-pointer text-white"
+                style={{
+                  background: "linear-gradient(135deg, var(--accent) 0%, #009640 100%)",
+                  boxShadow: "0 2px 8px rgba(0, 177, 79, 0.3)",
+                }}
+              >
+                Search
+              </button>
+            )}
             {searchQuery && (
               <button
                 onClick={() => {
